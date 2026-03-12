@@ -17,11 +17,20 @@
       padding-bottom: 2rem;
     }
 
+    /* --- View Toggles --- */
+    .view-toggles {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
     /* --- Fretboard Styles --- */
     .fretboard-wrapper {
       overflow-x: auto;
       margin-bottom: 1rem;
       padding-bottom: 1rem;
+      transition: all 0.2s ease;
     }
 
     .fretboard-table {
@@ -157,11 +166,12 @@
 
     /* --- Piano Styles --- */
     .piano-wrapper {
-      display: none; 
+      display: flex; /* Shown by default */
       justify-content: center;
       overflow-x: auto;
       padding-bottom: 1rem;
       margin-bottom: 2rem;
+      transition: all 0.2s ease;
     }
 
     .piano-keys {
@@ -300,13 +310,32 @@
       padding: 0 0.1rem;
       border-radius: 0.15rem;
     }
+
+    .badge-likely {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
   </style>
 </head>
 <body>
+  <nav class="container">
+        <ul>
+            <li><strong>Music Theory Tools</strong></li>
+        </ul>
+        <ul>
+            <li><a href="https://corrooli.github.io/MusicTheoryTools/" target="https://corrooli.github.io/MusicTheoryTools/">More Tools</a></li>
+            <li><a href="https://github.com/corrooli/MusicTheoryTools" target="https://github.com/corrooli/MusicTheoryTools">Code on GitHub</a></li>
+        </ul>
+    </nav>
   <main class="container">
     <hgroup>
       <h1>Reverse Scale/Mode Search</h1>
-      <p>Place notes to find scales, or toggle Play Mode to listen without altering your search.</p>
+      <p>Place notes to find scales, or toggle Play Mode to listen without altering your search. MIDI Keyboards are supported!</p>
     </hgroup>
 
     <div class="grid" style="align-items: flex-end; margin-bottom: 2rem;">
@@ -321,13 +350,36 @@
       <div>
         <label for="tuning-select">Guitar Tuning</label>
         <select id="tuning-select" style="margin-bottom: 0;">
-          <option value="Standard E" selected>Standard E</option>
-          <option value="Drop D">Drop D</option>
-          <option value="Drop C">Drop C</option>
-          <option value="D Standard">D Standard</option>
-          <option value="Eb Standard">Eb Standard</option>
-          <option value="Open G">Open G</option>
-          <option value="Open D">Open D</option>
+          <optgroup label="Standard & Downtuned">
+            <option value="Standard E" selected>Standard E</option>
+            <option value="Eb Standard">Eb Standard</option>
+            <option value="D Standard">D Standard</option>
+            <option value="C# Standard">C# Standard</option>
+            <option value="C Standard">C Standard</option>
+            <option value="B Standard">B Standard (Baritone)</option>
+            <option value="A Standard">A Standard</option>
+          </optgroup>
+          <optgroup label="Drop Tunings">
+            <option value="Drop D">Drop D</option>
+            <option value="Drop C#">Drop C#</option>
+            <option value="Drop C">Drop C</option>
+            <option value="Drop B">Drop B</option>
+            <option value="Drop A">Drop A</option>
+          </optgroup>
+          <optgroup label="Open Tunings">
+            <option value="Open E">Open E</option>
+            <option value="Open D">Open D</option>
+            <option value="Open A">Open A</option>
+            <option value="Open G">Open G</option>
+            <option value="Open C">Open C</option>
+          </optgroup>
+          <optgroup label="Folk & Alternative">
+            <option value="DADGAD">DADGAD</option>
+            <option value="Double Drop D">Double Drop D</option>
+            <option value="FACGCE">FACGCE (Midwest Emo)</option>
+            <option value="CGCGCE">CGCGCE</option>
+            <option value="All Fourths">All Fourths</option>
+          </optgroup>
         </select>
       </div>
       <div>
@@ -345,20 +397,21 @@
       </div>
     </div>
 
-    <div class="fretboard-wrapper">
+    <div class="view-toggles">
+      <button id="btn-toggle-fretboard" class="outline secondary" style="width: auto; padding: 0.25rem 1rem; margin-bottom: 0;" onclick="toggleFretboard()">Hide Fretboard</button>
+      <button id="btn-toggle-piano" class="outline secondary" style="width: auto; padding: 0.25rem 1rem; margin-bottom: 0;" onclick="togglePiano()">Hide Piano</button>
+    </div>
+
+    <div id="fretboard-wrapper" class="fretboard-wrapper">
       <table class="fretboard-table">
         <tbody id="fretboard-body"></tbody>
         <tfoot id="fretboard-foot"></tfoot>
       </table>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
-      <button id="btn-toggle-piano" class="outline secondary" style="width: auto; padding: 0.25rem 1rem; margin-bottom: 0;" onclick="togglePiano()">Show Piano View</button>
-    </div>
-
     <div id="piano-wrapper" class="piano-wrapper">
       <div id="piano-keys-container" class="piano-keys">
-        </div>
+      </div>
     </div>
 
     <div class="title-bar">
@@ -369,7 +422,7 @@
     </div>
 
     <div id="results" class="results-container">
-      </div>
+    </div>
   </main>
 
   <script>
@@ -382,13 +435,35 @@
     };
     
     const tunings = {
-      "Standard E":  [64, 59, 55, 50, 45, 40],
-      "Drop D":      [64, 59, 55, 50, 45, 38],
-      "Drop C":      [62, 57, 53, 48, 43, 36],
-      "D Standard":  [62, 57, 53, 48, 43, 38],
-      "Eb Standard": [63, 58, 54, 49, 44, 39],
-      "Open G":      [62, 59, 55, 50, 43, 38],
-      "Open D":      [62, 57, 54, 50, 45, 38]
+      // --- STANDARD & DOWNTUNED ---
+      "Standard E":    [64, 59, 55, 50, 45, 40],
+      "Eb Standard":   [63, 58, 54, 49, 44, 39],
+      "D Standard":    [62, 57, 53, 48, 43, 38],
+      "C# Standard":   [61, 56, 52, 47, 42, 37],
+      "C Standard":    [60, 55, 51, 46, 41, 36],
+      "B Standard":    [59, 54, 50, 45, 40, 35], // Baritone territory
+      "A Standard":    [57, 52, 48, 43, 38, 33], // Doom / Death metal
+
+      // --- DROP TUNINGS (Metal & Hard Rock) ---
+      "Drop D":        [64, 59, 55, 50, 45, 38],
+      "Drop C#":       [63, 58, 54, 49, 44, 37],
+      "Drop C":        [62, 57, 53, 48, 43, 36],
+      "Drop B":        [61, 56, 52, 47, 42, 35],
+      "Drop A":        [59, 54, 50, 45, 40, 33],
+
+      // --- OPEN TUNINGS (Blues, Slide, Rock) ---
+      "Open E":        [64, 59, 56, 52, 47, 40],
+      "Open D":        [62, 57, 54, 50, 45, 38],
+      "Open A":        [64, 61, 57, 52, 45, 40],
+      "Open G":        [62, 59, 55, 50, 43, 38],
+      "Open C":        [64, 60, 55, 48, 43, 36],
+
+      // --- FOLK, ACOUSTIC & ALT (Celtic, Emo, Math Rock) ---
+      "DADGAD":        [62, 57, 55, 50, 45, 38], // Celtic / Folk standard
+      "Double Drop D": [62, 59, 55, 50, 45, 38], // Neil Young style
+      "FACGCE":        [64, 60, 55, 48, 45, 41], // Midwest Emo / American Football
+      "CGCGCE":        [64, 60, 55, 48, 43, 36], // Nick Drake
+      "All Fourths":   [65, 60, 55, 50, 45, 40]  // Tom Quayle / Fusion symmetric
     };
 
     const scales = [
@@ -398,14 +473,14 @@
         { name: "Major Pentatonic", intervals: [0, 2, 4, 7, 9] },
         { name: "Minor Pentatonic", intervals: [0, 3, 5, 7, 10] },
         { name: "Blues", intervals: [0, 3, 5, 6, 7, 10] },
-        { name: "Minor Blues", intervals: [0, 3, 5, 6, 7, 10, 12] }, // Adding the octave for playback feel
+        { name: "Minor Blues", intervals: [0, 3, 5, 6, 7, 10, 12] },
 
         // --- THE DIATONIC MODES (Modes of Major) ---
-        { name: "Dorian", intervals: [0, 2, 3, 5, 7, 9, 10] },      // 2nd mode
-        { name: "Phrygian", intervals: [0, 1, 3, 5, 7, 8, 10] },    // 3rd mode
-        { name: "Lydian", intervals: [0, 2, 4, 6, 7, 9, 11] },      // 4th mode
-        { name: "Mixolydian", intervals: [0, 2, 4, 5, 7, 9, 10] },  // 5th mode
-        { name: "Locrian", intervals: [0, 1, 3, 5, 6, 8, 10] },     // 7th mode
+        { name: "Dorian", intervals: [0, 2, 3, 5, 7, 9, 10] },      
+        { name: "Phrygian", intervals: [0, 1, 3, 5, 7, 8, 10] },    
+        { name: "Lydian", intervals: [0, 2, 4, 6, 7, 9, 11] },      
+        { name: "Mixolydian", intervals: [0, 2, 4, 5, 7, 9, 10] },  
+        { name: "Locrian", intervals: [0, 1, 3, 5, 6, 8, 10] },     
 
         // --- MELODIC MINOR FAMILY (The Fusion Powerhouse) ---
         { name: "Melodic Minor", intervals: [0, 2, 3, 5, 7, 9, 11] },
@@ -446,13 +521,14 @@
         { name: "Pelog", intervals: [0, 1, 3, 7, 8] },
         { name: "Istrian", intervals: [0, 1, 3, 4, 6, 7] },
         { name: "Enigmatic", intervals: [0, 1, 4, 6, 8, 10, 11] }
-        ];
+    ];
 
     // --- State ---
     let currentTuning = "Standard E";
     let currentFrets = 15;
     let isPlayMode = false;
-    let isPianoVisible = false;
+    let isFretboardVisible = true;
+    let isPianoVisible = true;
     let searchQuery = "";
     
     // Notes selected via interactions
@@ -462,6 +538,32 @@
     let currentMatches = []; 
     let activeScaleIndex = null; 
     let audioCtx = null;
+
+    // --- MIDI Integration ---
+    function initMIDI() {
+      if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess().then(onMIDISuccess, () => {
+          console.log("MIDI access denied or failed.");
+        });
+      }
+    }
+
+    function onMIDISuccess(midiAccess) {
+      for (var input of midiAccess.inputs.values()) {
+        input.onmidimessage = getMIDIMessage;
+      }
+    }
+
+    function getMIDIMessage(message) {
+      var command = message.data[0];
+      var note = message.data[1];
+      var velocity = (message.data.length > 2) ? message.data[2] : 0;
+      
+      // Note On Message (144) with Velocity > 0
+      if (command >= 144 && command < 160 && velocity > 0) {
+        togglePianoKey(note);
+      }
+    }
 
     // --- Audio Synthesis ---
     function initAudio() {
@@ -498,16 +600,13 @@
     }
 
     function playScaleSequence(event, originalIndex) {
-      event.stopPropagation(); // Prevent scale selection trigger
+      event.stopPropagation(); 
       initAudio();
       
       let match = currentMatches[originalIndex];
       if (!match) return;
 
-      // Base octave C3 (48) + the root note's pitch class offset
       let rootMidi = 48 + match.rootPC; 
-      
-      // Get the ordered intervals and add an octave (12) at the end
       let orderedIntervals = [...match.scale.intervals, 12];
       let time = audioCtx.currentTime;
       
@@ -525,18 +624,22 @@
       document.getElementById('lbl-play').style.fontWeight = checked ? 'bold' : 'normal';
     }
 
+    function toggleFretboard() {
+      isFretboardVisible = !isFretboardVisible;
+      const f = document.getElementById('fretboard-wrapper');
+      const btn = document.getElementById('btn-toggle-fretboard');
+      
+      f.style.display = isFretboardVisible ? 'block' : 'none';
+      btn.textContent = isFretboardVisible ? 'Hide Fretboard' : 'Show Fretboard';
+    }
+
     function togglePiano() {
       isPianoVisible = !isPianoVisible;
       const p = document.getElementById('piano-wrapper');
       const btn = document.getElementById('btn-toggle-piano');
       
-      if(isPianoVisible) {
-        p.style.display = 'flex';
-        btn.textContent = 'Hide Piano View';
-      } else {
-        p.style.display = 'none';
-        btn.textContent = 'Show Piano View';
-      }
+      p.style.display = isPianoVisible ? 'flex' : 'none';
+      btn.textContent = isPianoVisible ? 'Hide Piano' : 'Show Piano';
     }
 
     function handleSearch(val) {
@@ -686,13 +789,6 @@
         activeScaleIndex = null;
       } else {
         activeScaleIndex = originalIndex;
-        
-        // Auto-switch to play mode if exploring the master list and no notes are selected manually
-        if (selectedFrets.length === 0 && selectedPianoKeys.length === 0 && !isPlayMode) {
-          const switchEl = document.getElementById('mode-switch');
-          switchEl.checked = true;
-          toggleMode(true);
-        }
       }
       renderUI();
     }
@@ -708,7 +804,6 @@
     });
 
     function updateApp() {
-      // Combine PC inputs from both Fretboard and Piano
       const combinedPCs = [...selectedFrets.map(x => x.pc), ...selectedPianoKeys.map(x => x.pc)];
       const uniqueSelectedPCs = new Set(combinedPCs);
       
@@ -734,7 +829,7 @@
                 pct: pct,
                 scalePCs: scalePCs,
                 rootPC: root,
-                scale: scale // Needed for ordered intervals
+                scale: scale
               });
             }
           }
@@ -770,6 +865,21 @@
         titleEl.textContent = "All Scales";
       }
       
+      // Calculate Lowest Pitch Class
+      let lowestMidi = Infinity;
+      const tuningArr = tunings[currentTuning];
+
+      selectedFrets.forEach(x => {
+        let midi = tuningArr[x.s] + x.f;
+        if (midi < lowestMidi) lowestMidi = midi;
+      });
+
+      selectedPianoKeys.forEach(x => {
+        if (x.midi < lowestMidi) lowestMidi = x.midi;
+      });
+
+      let lowestPC = lowestMidi !== Infinity ? lowestMidi % 12 : null;
+      
       let displayMatches = currentMatches
         .map((m, originalIdx) => ({ ...m, originalIdx }))
         .filter(m => m.name.toLowerCase().includes(searchQuery));
@@ -785,13 +895,15 @@
         displayMatches.forEach((m) => {
           const isActive = activeScaleIndex === m.originalIdx;
           const showPct = m.pct !== null;
+          const isMostLikely = (showPct && m.pct > 50 && m.rootPC === lowestPC);
           
           html += `
             <div class="scale-card ${isActive ? 'active' : ''}" onclick="handleScaleClick(${m.originalIdx})">
               <div class="scale-header" style="${!showPct ? 'margin-bottom: 0;' : ''}">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                   <strong>${highlightText(m.name, searchQuery)}</strong>
                   ${showPct ? `<span class="badge">${m.pct}% Match</span>` : ''}
+                  ${isMostLikely ? `<span class="badge-likely">Most Likely ✨</span>` : ''}
                 </div>
                 <button class="outline secondary" style="width: auto; padding: 0.2rem 0.6rem; font-size: 0.8rem; margin: 0; border-radius: var(--pico-border-radius);" onclick="playScaleSequence(event, ${m.originalIdx})">▶ Play</button>
               </div>
@@ -805,12 +917,9 @@
       let scaleToHighlight = null;
       if (activeScaleIndex !== null && currentMatches[activeScaleIndex]) {
         scaleToHighlight = currentMatches[activeScaleIndex];
-      } else if (uniqueSelectedPCs.size > 0 && currentMatches.length === 1) {
-        scaleToHighlight = currentMatches[0];
       }
 
       // Render Fretboard
-      const tuningArr = tunings[currentTuning];
       for (let s = 0; s < 6; s++) {
         for (let f = 0; f <= currentFrets; f++) {
           let marker = document.getElementById(`marker-${s}-${f}`);
@@ -818,9 +927,10 @@
 
           let pc = (tuningArr[s] + f) % 12;
           let isSelectedFret = selectedFrets.some(x => x.s === s && x.f === f);
+          let isRoot = false;
+          let isScaleNote = false;
 
           marker.className = 'note-marker'; 
-          
           let innerHtml = `<span class="note-val">${noteNames[pc]}</span>`;
 
           if (scaleToHighlight && scaleToHighlight.scalePCs.has(pc)) {
@@ -828,16 +938,17 @@
             let intervalStr = intervalNames[distanceFromRoot];
             
             innerHtml += `<span class="interval-val">${intervalStr}</span>`;
-
-            if (distanceFromRoot === 0) {
-              marker.classList.add('root-note');
-            } else {
-              marker.classList.add('scale-note');
-            }
+            isRoot = (distanceFromRoot === 0);
+            isScaleNote = true;
           }
 
-          if (isSelectedFret) {
+          // Hierarchy Priority: Root > Selected > Scale
+          if (isRoot) {
+            marker.classList.add('root-note');
+          } else if (isSelectedFret) {
             marker.classList.add('selected');
+          } else if (isScaleNote) {
+            marker.classList.add('scale-note');
           }
 
           marker.innerHTML = innerHtml;
@@ -853,6 +964,8 @@
         if (!key) continue;
 
         let isSelectedPianoKey = selectedPianoKeys.some(x => x.midi === midi);
+        let isRoot = false;
+        let isScaleNote = false;
 
         key.className = `key ${isBlack ? 'key-black' : 'key-white'}`;
         let innerHtml = `<span class="key-label">${noteNames[pc]}</span>`;
@@ -862,16 +975,17 @@
           let intervalStr = intervalNames[distanceFromRoot];
           
           innerHtml += `<span class="key-interval">${intervalStr}</span>`;
-
-          if (distanceFromRoot === 0) {
-            key.classList.add('root-note');
-          } else {
-            key.classList.add('scale-note');
-          }
+          isRoot = (distanceFromRoot === 0);
+          isScaleNote = true;
         }
 
-        if (isSelectedPianoKey) {
-            key.classList.add('selected');
+        // Hierarchy Priority: Root > Selected > Scale
+        if (isRoot) {
+          key.classList.add('root-note');
+        } else if (isSelectedPianoKey) {
+          key.classList.add('selected');
+        } else if (isScaleNote) {
+          key.classList.add('scale-note');
         }
 
         key.innerHTML = innerHtml;
@@ -879,6 +993,7 @@
     }
 
     // Boot
+    initMIDI();
     initPiano();
     initFretboard();
   </script>
