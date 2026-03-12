@@ -142,6 +142,12 @@
     }
     .note-marker.selected .interval-val { border-left-color: currentColor; }
 
+    .note-marker.ghost-note {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      opacity: 0.5;
+    }
+
     .note-marker.scale-note {
       background: var(--scale-note-bg);
       color: #fff;
@@ -222,6 +228,13 @@
       background: var(--pico-primary-background) !important;
       color: var(--pico-primary-inverse) !important;
       border-color: var(--pico-primary-background) !important;
+    }
+
+    .key.ghost-note {
+      background: var(--pico-primary-background) !important;
+      color: var(--pico-primary-inverse) !important;
+      border-color: var(--pico-primary-background) !important;
+      opacity: 0.5 !important;
     }
 
     .key.scale-note {
@@ -942,13 +955,15 @@
             isScaleNote = true;
           }
 
-          // Hierarchy Priority: Root > Selected > Scale
+          // Hierarchy Priority: Root > Selected > Scale > Ghost
           if (isRoot) {
             marker.classList.add('root-note');
           } else if (isSelectedFret) {
             marker.classList.add('selected');
           } else if (isScaleNote) {
             marker.classList.add('scale-note');
+          } else if (!scaleToHighlight && uniqueSelectedPCs.has(pc)) {
+            marker.classList.add('ghost-note');
           }
 
           marker.innerHTML = innerHtml;
@@ -979,13 +994,15 @@
           isScaleNote = true;
         }
 
-        // Hierarchy Priority: Root > Selected > Scale
+        // Hierarchy Priority: Root > Selected > Scale > Ghost
         if (isRoot) {
           key.classList.add('root-note');
         } else if (isSelectedPianoKey) {
           key.classList.add('selected');
         } else if (isScaleNote) {
           key.classList.add('scale-note');
+        } else if (!scaleToHighlight && uniqueSelectedPCs.has(pc)) {
+          key.classList.add('ghost-note');
         }
 
         key.innerHTML = innerHtml;
