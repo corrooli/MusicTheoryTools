@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playable Functional Harmony Board</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <style>
+        body {
+            padding: 2rem 1rem;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow-x: auto;
+        }
+
+        .controls {
+            max-width: 500px;
+            margin: 0 auto 2rem auto;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .harmony-board {
+            background-color: var(--pico-background-color);
+            border-radius: 12px;
+            padding: 2rem 1rem;
+            max-width: 1050px;
+            margin: 0 auto;
+            min-width: 850px;
+            user-select: none;
+        }
+
+        /* Layout Structure */
+        .board-section {
+            display: flex;
+            align-items: stretch;
+            margin-bottom: 0.5rem;
+        }
+
+        .outer-sidebar {
+            width: 130px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-right: 1.5rem;
+            text-align: right;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--pico-muted-color);
+        }
+
+        .grid-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .grid-container.dashed { border: 2px dashed var(--pico-muted-border-color); }
+        .grid-container.solid { border: 2px solid var(--pico-muted-border-color); }
+        .grid-container.no-border { padding: 0 1.5rem; }
+
+        .inner-sidebar {
+            width: 100px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--pico-color);
+            margin-right: 1rem;
+        }
+
+        .inner-sidebar .icon {
+            font-size: 1.4rem;
+            margin-bottom: 0.2rem;
+            font-weight: normal;
+        }
+
+        .chord-grid {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .section-label {
+            position: absolute;
+            right: 1.5rem;
+            top: -0.6rem;
+            background: var(--pico-background-color);
+            padding: 0 0.5rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            color: var(--pico-muted-color);
+        }
+
+        .section-label.bottom {
+            top: auto;
+            bottom: -0.6rem;
+        }
+
+        /* Cutout Boxes & Interactivity */
+        .chord-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.2s ease, opacity 0.2s ease;
+        }
+
+        .chord-wrapper:hover { transform: scale(1.05); z-index: 20; }
+        .chord-wrapper:active, .chord-wrapper.key-active { 
+            transform: scale(0.95); 
+            filter: brightness(0.8);
+        }
+
+        /* STRICT MODE STYLING */
+        .chord-wrapper.disabled {
+            opacity: 0.25;
+            pointer-events: none;
+            filter: grayscale(100%);
+        }
+
+        .chord-cutout {
+            background-color: var(--pico-form-element-background-color);
+            width: 55px;
+            height: 55px;
+            border-radius: 6px;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--pico-color);
+            position: relative;
+        }
+
+        .keycap-hint {
+            position: absolute;
+            top: -1.4rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--pico-background-color);
+            color: var(--pico-muted-color);
+            border: 1px solid var(--pico-muted-border-color);
+            font-size: 0.6rem;
+            font-family: monospace;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Rich Tooltip Styling */
+        .chord-tooltip {
+            visibility: hidden;
+            width: max-content;
+            max-width: 220px;
+            background-color: var(--pico-contrast-background);
+            color: var(--pico-contrast-inverse);
+            text-align: left;
+            border-radius: 8px;
+            padding: 0.75rem;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%; 
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            font-size: 0.75rem;
+            font-weight: normal;
+            line-height: 1.4;
+            pointer-events: none;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .chord-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--pico-contrast-background) transparent transparent transparent;
+        }
+
+        .chord-wrapper:hover .chord-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .tooltip-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tooltip-notes {
+            color: #a0a0a0;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .roman-numeral {
+            position: absolute;
+            left: -2.2rem;
+            width: 2rem;
+            text-align: right;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--pico-muted-color);
+            line-height: 1;
+        }
+        .roman-numeral.top-left { top: 0; }
+        .roman-numeral sub { font-size: 0.55rem; bottom: -0.1em; }
+
+        .quality-label {
+            position: absolute;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--pico-muted-color);
+            line-height: 1;
+        }
+        .quality-label.center-right { right: -1.2rem; top: 50%; transform: translateY(-50%); }
+        .quality-label.bottom-right { right: -1.2rem; bottom: 0; }
+
+        .arrow-container {
+            display: flex;
+            justify-content: center;
+            color: var(--pico-muted-color);
+            font-weight: bold;
+            font-size: 1.2rem;
+            height: 30px;
+            align-items: center;
+        }
+
+        /* Settings Pane */
+        .settings-pane { max-width: 750px; margin: 2rem auto; }
+        .settings-pane details {
+            background: var(--pico-form-element-background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--pico-muted-border-color);
+        }
+        .settings-pane summary { font-weight: bold; color: var(--pico-muted-color); margin-bottom: 0; cursor: pointer; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--pico-muted-border-color);
+        }
+    </style>
+</head>
+<body>
+
+<main class="container-fluid">
+    <div class="controls">
+        <div class="controls-grid">
+            <div>
+                <label for="key-select"><strong>Root Key</strong></label>
+                <select id="key-select"></select>
+            </div>
+            <div>
+                <label for="mode-select"><strong>Scale Mode</strong></label>
+                <select id="mode-select">
+                    <option value="major">Major</option>
+                    <option value="minor">Natural Minor</option>
+                </select>
+            </div>
+        </div>
+        <small id="audio-hint" style="color: var(--pico-muted-color); display: block; margin-top: 0.5rem; text-align: center;">
+            <em>Hover over chords for theory tips. Press keys to play.</em>
+        </small>
+    </div>
+
+    <div class="harmony-board">
+        <div class="board-section">
+            <div class="outer-sidebar">
+                <div>DOWN: FOLLOW<br>THE ARROWS ↓</div>
+            </div>
+            <div class="grid-container dashed">
+                <div class="section-label">SECONDARY DOMINANTS</div>
+                <div class="inner-sidebar">
+                    <div class="icon">⤄</div>
+                    <div>Don't Mix<br>Chords</div>
+                </div>
+                <div class="chord-grid" id="sec-dom-grid"></div>
+            </div>
+        </div>
+
+        <div class="board-section">
+            <div class="outer-sidebar">
+                <div style="margin-bottom: 0.5rem;">UP: TO<br>ANY CHORD ↑</div>
+            </div>
+            <div class="grid-container no-border">
+                <div class="inner-sidebar"></div>
+                <div class="chord-grid" id="arrow-down-grid"></div>
+            </div>
+        </div>
+
+        <div class="board-section">
+            <div class="outer-sidebar">
+                <div>START HERE →</div>
+            </div>
+            <div class="grid-container solid">
+                <div class="section-label bottom">MAIN CHORDS</div>
+                <div class="inner-sidebar">
+                    <div class="icon">⟲</div>
+                    <div>Mix<br>Chords</div>
+                </div>
+                <div class="chord-grid" id="main-grid"></div>
+            </div>
+        </div>
+
+        <div class="board-section">
+            <div class="outer-sidebar">
+                <div style="margin-bottom: 0.5rem;">DOWN: TO ANY<br>OF FOUR ↓</div>
+            </div>
+            <div class="grid-container no-border">
+                <div class="inner-sidebar"></div>
+                <div class="chord-grid" id="arrow-double-grid"></div>
+            </div>
+        </div>
+
+        <div class="board-section">
+            <div class="outer-sidebar">
+                <div>UP: TO ANY<br>OF THREE ↑</div>
+            </div>
+            <div class="grid-container solid">
+                <div class="section-label bottom">MODAL INTERCHANGE</div>
+                <div class="inner-sidebar">
+                    <div class="icon">⟲</div>
+                    <div>Mix<br>Chords</div>
+                </div>
+                <div class="chord-grid" id="modal-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-pane">
+        <details>
+            <summary>⚙️ Board Settings</summary>
+            <div class="settings-grid">
+                <div>
+                    <label for="notation-select"><strong>Notation Display</strong></label>
+                    <select id="notation-select">
+                        <option value="flat">Flats (b)</option>
+                        <option value="sharp">Sharps (#)</option>
+                    </select>
+                </div>
+                <div>
+                    <label><strong>Theoretical Strict Mode</strong></label>
+                    <label>
+                        <input type="checkbox" id="strict-toggle" role="switch">
+                        Enforce board movement rules
+                    </label>
+                </div>
+                <div>
+                    <label><strong>Keyboard Playback</strong></label>
+                    <label>
+                        <input type="checkbox" id="kb-toggle" checked role="switch">
+                        Enable QWERTZ mappings
+                    </label>
+                </div>
+            </div>
+        </details>
+    </div>
+</main>
+
+<script>
+    // --- STATE TRACKING FOR STRICT MODE ---
+    let currentStep = null; // Will hold { type: 'main', col: 2 }
+
+    // --- AUDIO ENGINE ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const noteMap = {
+        "C": 60, "Db": 61, "C#": 61, "D": 62, "Eb": 63, "D#": 63, "E": 64, "F": 65,
+        "Gb": 66, "F#": 66, "G": 67, "Ab": 68, "G#": 68, "A": 69, "Bb": 70, "A#": 70, "B": 71
+    };
+
+    function midiToFreq(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
+
+    function playTone(frequency) {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'triangle'; 
+        osc.frequency.value = frequency;
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.5);
+    }
+
+    // Handles playing audio AND tracking strict state
+    window.playChord = function(rootNoteStr, quality, gridType, colIndex) {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+            document.getElementById('audio-hint').style.display = 'none';
+        }
+
+        // Play Sound
+        const rootMidi = noteMap[rootNoteStr];
+        let intervals = [];
+        if (quality === 'M') intervals = [0, 4, 7]; 
+        else if (quality === 'm') intervals = [0, 3, 7]; 
+        else if (quality === 'dim') intervals = [0, 3, 6]; 
+        else if (quality === '7') intervals = [0, 4, 7, 10]; 
+        intervals.forEach(interval => playTone(midiToFreq(rootMidi + interval)));
+
+        // Update Strict Mode State
+        currentStep = { type: gridType, col: parseInt(colIndex) };
+        applyStrictRules();
+    };
+
+    // --- RENDER ENGINE & DATA ---
+    const scales = {
+        flat: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"],
+        sharp: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    };
+
+    const layouts = {
+        major: [
+            { sec: { roman: 'V<sub>I</sub>', interval: 7, q: '7' }, main: { roman: 'I', interval: 0, q: 'M' }, mod: { roman: 'bIII', interval: 3, q: 'M' } },
+            { sec: { roman: 'V<sub>vi</sub>', interval: 4, q: '7' }, main: { roman: 'vi', interval: 9, q: 'm' }, mod: null },
+            { sec: { roman: 'V<sub>IV</sub>', interval: 0, q: '7' }, main: { roman: 'IV', interval: 5, q: 'M' }, mod: { roman: 'bVI', interval: 8, q: 'M' } },
+            { sec: { roman: 'V<sub>ii</sub>', interval: 9, q: '7' }, main: { roman: 'ii', interval: 2, q: 'm' }, mod: { roman: 'iv', interval: 5, q: 'm' } },
+            { sec: { roman: 'V<sub>V</sub>', interval: 2, q: '7' }, main: { roman: 'V', interval: 7, q: 'M' }, mod: { roman: 'bVII', interval: 10, q: 'M' } },
+            { sec: { roman: 'V<sub>iii</sub>', interval: 11, q: '7' }, main: { roman: 'iii', interval: 4, q: 'm' }, mod: null }
+        ],
+        minor: [
+            { sec: { roman: 'V<sub>i</sub>', interval: 7, q: '7' }, main: { roman: 'i', interval: 0, q: 'm' }, mod: { roman: 'I', interval: 0, q: 'M' } },
+            { sec: { roman: 'V<sub>VI</sub>', interval: 3, q: '7' }, main: { roman: 'VI', interval: 8, q: 'M' }, mod: null },
+            { sec: { roman: 'V<sub>iv</sub>', interval: 0, q: '7' }, main: { roman: 'iv', interval: 5, q: 'm' }, mod: { roman: 'IV', interval: 5, q: 'M' } },
+            { sec: { roman: 'V<sub>ii°</sub>', interval: 9, q: '7' }, main: { roman: 'ii°', interval: 2, q: 'dim' }, mod: { roman: 'ii', interval: 2, q: 'm' } },
+            { sec: { roman: 'V<sub>V</sub>', interval: 2, q: '7' }, main: { roman: 'V', interval: 7, q: 'M' }, mod: { roman: 'v', interval: 7, q: 'm' } },
+            { sec: { roman: 'V<sub>III</sub>', interval: 10, q: '7' }, main: { roman: 'III', interval: 3, q: 'M' }, mod: null }
+        ]
+    };
+
+    const keysSec = ['q', 'w', 'e', 'r', 't', 'z'];
+    const keysMain = ['a', 's', 'd', 'f', 'g', 'h'];
+    const keysMod = ['y', 'x', 'c', 'v', 'b', 'n']; 
+    
+    let activeKeyMap = {};
+    let currentNotation = 'flat';
+    let currentMode = 'major';
+
+    const keySelect = document.getElementById('key-select');
+    const modeSelect = document.getElementById('mode-select');
+    const notationSelect = document.getElementById('notation-select');
+    const strictToggle = document.getElementById('strict-toggle');
+    const kbToggle = document.getElementById('kb-toggle');
+    
+    const secDomGrid = document.getElementById('sec-dom-grid');
+    const mainGrid = document.getElementById('main-grid');
+    const modalGrid = document.getElementById('modal-grid');
+    const arrowDownGrid = document.getElementById('arrow-down-grid');
+    const arrowDoubleGrid = document.getElementById('arrow-double-grid');
+
+    function populateKeys() {
+        const selectedIndex = keySelect.value || 0;
+        keySelect.innerHTML = '';
+        scales[currentNotation].forEach((note, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${note} ${currentMode === 'major' ? 'Major' : 'Minor'}`;
+            if (index == selectedIndex) option.selected = true;
+            keySelect.appendChild(option);
+        });
+    }
+
+    function getNote(rootIndex, interval) { return scales[currentNotation][(parseInt(rootIndex) + interval) % 12]; }
+
+    function calculateSpelledNotes(rootStr, quality) {
+        const scale = scales[currentNotation];
+        const rootIdx = scale.indexOf(rootStr);
+        let intervals = [];
+        if (quality === 'M') intervals = [0, 4, 7]; 
+        else if (quality === 'm') intervals = [0, 3, 7]; 
+        else if (quality === 'dim') intervals = [0, 3, 6]; 
+        else if (quality === '7') intervals = [0, 4, 7, 10]; 
+        return intervals.map(int => scale[(rootIdx + int) % 12]).join(' - ');
+    }
+
+    function generateTooltipHtml(note, romanClean, quality, gridType) {
+        const notesStr = calculateSpelledNotes(note, quality);
+        let fullName = note;
+        if (quality === 'M') fullName += " Major";
+        else if (quality === 'm') fullName += " Minor";
+        else if (quality === 'dim') fullName += " Diminished";
+        else if (quality === '7') fullName += " Dominant 7";
+
+        let funcDesc = "";
+        if (gridType === 'sec-dom') {
+            funcDesc = "<strong>Secondary Dominant.</strong><br>A non-diatonic tension chord. Resolves strongly down to the chord below it.";
+        } else if (gridType === 'modal') {
+            funcDesc = "<strong>Modal Interchange.</strong><br>Borrowed from the parallel scale to add unexpected emotional color.";
+        } else {
+            const rLower = romanClean.toLowerCase().replace(/[^a-z°]/g, '');
+            if (rLower === 'i') funcDesc = "<strong>Tonic.</strong><br>The home base. Feels stable and resolved.";
+            else if (rLower === 'v') funcDesc = "<strong>Dominant.</strong><br>High tension. Strongly wants to pull back to the Tonic.";
+            else if (rLower === 'iv' || rLower === 'ii' || rLower === 'ii°') funcDesc = "<strong>Subdominant.</strong><br>Moves away from home and sets up the Dominant chord.";
+            else if (rLower === 'vi' || rLower === 'iii') funcDesc = "<strong>Mediant/Submediant.</strong><br>Often used to prolong the Tonic or smoothly transition between chords.";
+            else funcDesc = "<strong>Diatonic Chord.</strong><br>Naturally occurs within the key.";
+        }
+
+        return `
+            <div class="chord-tooltip">
+                <div class="tooltip-title">
+                    <span>${fullName}</span>
+                    <span style="color: var(--pico-primary);">${romanClean}</span>
+                </div>
+                <span class="tooltip-notes">Notes: ${notesStr}</span>
+                <div>${funcDesc}</div>
+            </div>
+        `;
+    }
+
+    function buildChordBox(data, rootIndex, gridType, keyChar, colIndex) {
+        if (!data) return '<div></div>'; 
+
+        const note = getNote(rootIndex, data.interval);
+        const elementId = `chord-${keyChar}`;
+        
+        activeKeyMap[keyChar] = { note: note, q: data.q, id: elementId, type: gridType, col: colIndex };
+
+        const keycapHtml = `<div class="keycap-hint">${keyChar.toUpperCase()}</div>`;
+        let romanClass = "roman-numeral top-left";
+        let qualityClass = gridType === 'sec-dom' ? "quality-label center-right" : "quality-label bottom-right";
+
+        const romanClean = data.roman.replace(/<\/?sub>/g, '');
+        const tooltipHtml = generateTooltipHtml(note, romanClean, data.q, gridType);
+
+        return `
+            <div class="chord-wrapper" id="${elementId}" data-type="${gridType}" data-col="${colIndex}" onclick="playChord('${note}', '${data.q}', '${gridType}', ${colIndex})">
+                ${keycapHtml}
+                ${tooltipHtml}
+                <div class="${romanClass}">${data.roman}</div>
+                <div class="chord-cutout">${note}</div>
+                <div class="${qualityClass}">${data.q}</div>
+            </div>`;
+    }
+
+    function applyStrictRules() {
+        const isStrict = strictToggle.checked;
+        const allChords = document.querySelectorAll('.chord-wrapper');
+
+        // If off, enable everything
+        if (!isStrict) {
+            allChords.forEach(el => el.classList.remove('disabled'));
+            return;
+        }
+
+        // If on, but no chord played yet -> ONLY Main Chords are active (Start Here)
+        if (!currentStep) {
+            allChords.forEach(el => {
+                if (el.dataset.type === 'main') el.classList.remove('disabled');
+                else el.classList.add('disabled');
+            });
+            return;
+        }
+
+        // Calculate legal moves based on the last played chord
+        allChords.forEach(el => {
+            const targetType = el.dataset.type;
+            const targetCol = parseInt(el.dataset.col);
+            let isLegal = false;
+
+            if (currentStep.type === 'sec-dom') {
+                // From Top Row: Only Down (to specific main chord beneath it)
+                if (targetType === 'main' && targetCol === currentStep.col) isLegal = true;
+            } 
+            else if (currentStep.type === 'main') {
+                // From Middle Row: Mix (any main), Up to Any (any sec-dom), Down to Any (any modal)
+                isLegal = true; 
+            } 
+            else if (currentStep.type === 'modal') {
+                // From Bottom Row: Mix (any modal), Up to 3 (Main chords in columns 0, 2, 4 i.e., I, IV, V)
+                if (targetType === 'modal') isLegal = true;
+                if (targetType === 'main' && (targetCol === 0 || targetCol === 2 || targetCol === 4)) isLegal = true;
+            }
+
+            if (isLegal) el.classList.remove('disabled');
+            else el.classList.add('disabled');
+        });
+    }
+
+    function renderBoard() {
+        currentStep = null; // Reset strict state on redraw
+        const rootIndex = keySelect.value;
+        const activeLayout = layouts[currentMode];
+        
+        secDomGrid.innerHTML = ''; mainGrid.innerHTML = ''; modalGrid.innerHTML = '';
+        arrowDownGrid.innerHTML = ''; arrowDoubleGrid.innerHTML = '';
+        activeKeyMap = {};
+
+        activeLayout.forEach((col, index) => {
+            secDomGrid.innerHTML += buildChordBox(col.sec, rootIndex, 'sec-dom', keysSec[index], index);
+            mainGrid.innerHTML += buildChordBox(col.main, rootIndex, 'main', keysMain[index], index);
+            modalGrid.innerHTML += buildChordBox(col.mod, rootIndex, 'modal', keysMod[index], index);
+
+            arrowDownGrid.innerHTML += `<div class="arrow-container">↓</div>`;
+            if (index === 0 || index === 2 || index === 4) {
+                arrowDoubleGrid.innerHTML += `<div class="arrow-container">↕</div>`;
+            } else {
+                arrowDoubleGrid.innerHTML += `<div></div>`;
+            }
+        });
+
+        applyStrictRules(); // Enforce state immediately upon render
+    }
+
+    // --- EVENT LISTENERS ---
+    keySelect.addEventListener('change', renderBoard);
+    modeSelect.addEventListener('change', (e) => { currentMode = e.target.value; populateKeys(); renderBoard(); });
+    notationSelect.addEventListener('change', (e) => { currentNotation = e.target.value; populateKeys(); renderBoard(); });
+    strictToggle.addEventListener('change', applyStrictRules);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.repeat || !kbToggle.checked) return; 
+        
+        const key = e.key.toLowerCase();
+        if (activeKeyMap[key]) {
+            const chordData = activeKeyMap[key];
+            const wrapperElement = document.getElementById(chordData.id);
+            
+            // Only play if it's not disabled by Strict Mode
+            if (wrapperElement && !wrapperElement.classList.contains('disabled')) {
+                playChord(chordData.note, chordData.q, chordData.type, chordData.col);
+                wrapperElement.classList.add('key-active');
+                setTimeout(() => wrapperElement.classList.remove('key-active'), 150);
+            }
+        }
+    });
+
+    // Initialize
+    populateKeys();
+    renderBoard();
+</script>
+
+</body>
+</html>
