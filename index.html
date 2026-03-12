@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Theory Tools</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        :root {
+            --primary: #8e44ad; /* A subtle music-themed purple */
+        }
+        main { display: flex; flex-direction: column; justify-content: center; min-height: 80vh; }
+        .tool-card { transition: transform 0.2s ease, border-color 0.2s ease; }
+        .tool-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <nav class="container">
+        <ul>
+            <li><strong>Music Theory Tools</strong></li>
+        </ul>
+        <ul>
+            <li><a href="https://github.com" target="https://github.com/corrooli/MusicTheoryTools">Code on GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <header>
+            <hgroup>
+                <h1>Music Theory Tools</h1>
+                <p>Interactive utilities for composers and players</p>
+            </hgroup>
+        </header>
+
+        <div class="grid">
+            <article class="tool-card">
+                <header>🎹 Harmony Board</header>
+                <p>An interactive interface for exploring chord progressions and voicing textures.</p>
+                <footer>
+                    <a href="harmonyboard.html" role="button">Open Tool</a>
+                </footer>
+            </article>
+
+            <article class="tool-card">
+                <header>🔍 Reverse Scale Search</header>
+                <p>Input your notes to identify potential scales/modes and on guitar fretboard or piano.</p>
+                <footer>
+                    <a href="reversescalesearch.html" role="button">Open Tool</a>
+                </footer>
+            </article>
+        </div>
+    </main>
+
+<footer class="container">
+    <hr />
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <small>
+                Built with <b>too much caffeine</b> in my bloodstream. 
+                <br>
+                Current Status: <i>Jittery, but functional.</i>
+            </small>
+        </div>
+        <div>
+            <a href="https://ko-fi.com/olivercorrodi" 
+                target="_blank" 
+                role="button" 
+                class="secondary outline" 
+                style="margin-bottom: 0; padding: 0.6rem 1.2rem; font-size: 0.9rem; border-radius: 50px;">
+                ☕ Help me get my next fix
+            </a>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>
