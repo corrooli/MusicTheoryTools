@@ -1,0 +1,13 @@
+{
+  "name": "music-theory-tools",
+  "private": true,
+  "description": "Single-file music theory web tools (GitHub Pages). Tests only - nothing here is needed to run the pages.",
+  "scripts": {
+    "test": "node --test tests/chord-engine.test.js",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
